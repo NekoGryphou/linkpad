@@ -1,0 +1,34 @@
+#!/bin/sh
+set -u
+command=${STEAMLINK_COMMAND:-/usr/bin/steamlink}
+base=$(dirname "$(readlink -f "$0")")
+temporary_runtime=0
+if [ -n "${STEAMLINK_RUNTIME_DIR:-}" ]; then
+    runtime=$STEAMLINK_RUNTIME_DIR
+else
+    runtime=$(mktemp -d "${TMPDIR:-/tmp}/steamlink-tool.XXXXXX") || exit 1
+    temporary_runtime=1
+    trap 'rm -rf "$runtime"' EXIT
+fi
+if [ -e /etc/steamlink-tool.disabled ] || [ -e "$runtime/disabled" ] ||
+   [ ! -r "$base/bootstrap.so" ] || [ ! -r "$base/native.so" ]; then
+    if [ "$temporary_runtime" -eq 1 ]; then rm -rf "$runtime"; trap - EXIT; fi
+    exec "$command" "$@"
+fi
+export STEAMLINK_ORIGINAL_LD_PRELOAD=${LD_PRELOAD-}
+export STEAMLINK_ORIGINAL_LD_LIBRARY_PATH=${LD_LIBRARY_PATH-}
+export STEAMLINK_ORIGINAL_QT_PLUGIN_PATH=${QT_PLUGIN_PATH-}
+export STEAMLINK_ORIGINAL_QT_QPA_PLATFORM=${QT_QPA_PLATFORM-}
+export STEAMLINK_ORIGINAL_PATH=${PATH-}
+export STEAMLINK_ORIGINAL_TMPDIR=${TMPDIR-}
+export STEAMLINK_PROBE_MODULE="$base/native.so"
+export STEAMLINK_SHORTCUT_SOCKET="$runtime/state.sock"
+export LD_PRELOAD="$base/bootstrap.so${LD_PRELOAD:+:$LD_PRELOAD}"
+"$command" "$@"
+result=$?
+unset LD_PRELOAD STEAMLINK_PROBE_MODULE
+if [ "$result" -ne 0 ]; then
+    : > "$runtime/disabled"
+    logger -t steamlink-tool "Client exited with status $result; extension disabled for subsequent launches in this runtime directory"
+fi
+exit "$result"

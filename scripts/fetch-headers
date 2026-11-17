@@ -1,0 +1,17 @@
+#!/bin/sh
+# Download/extract headers without installing Qt packages or their dependencies.
+set -eu
+root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+command -v apt-get >/dev/null
+command -v dpkg-deb >/dev/null
+mkdir -p "$root/.cache"
+stage=$(mktemp -d "$root/.cache/qt-download.XXXXXX")
+trap 'rm -rf "$stage"' EXIT
+cd "$stage"
+apt-get download "qtbase5-dev:$(dpkg --print-architecture)"
+set -- qtbase5-dev_*.deb
+[ "$#" -eq 1 ] && [ -f "$1" ] || { echo 'Expected one Qt development package' >&2; exit 1; }
+dpkg-deb -x "$1" extracted
+rm -rf "$root/.cache/qt-headers"
+mv extracted "$root/.cache/qt-headers"
+echo 'Qt headers extracted into .cache/qt-headers; no packages installed.'

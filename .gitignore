@@ -1,0 +1,17 @@
+/out/
+/.cache/
+/.idea/
+/package-root/
+/core
+/core.*
+*.so
+*.o
+*.a
+*.ko
+*.deb
+# Never include machine records or third-party driver snapshots.
+/backups/
+/audit/
+/pi-config/
+/driver/
+/qt-headers/
