@@ -1,4 +1,4 @@
-# Steam Link Tool
+# Linkpad
 
 Run commands from Steam Link's home screen by holding Xbox controller button combinations.
 
@@ -24,21 +24,21 @@ make test
 sudo make install
 ```
 
-This installs `/usr/local/bin/steamlink-tool` and `/usr/local/lib/steamlink-tool/`. Services, drivers and system configuration are not modified.
+This installs `/usr/local/bin/linkpad` and `/usr/local/lib/linkpad/`. Services, drivers and system configuration are not modified.
 
 ## Usage
 
 Run the tool instead of the official launcher:
 
 ```sh
-steamlink-tool
+linkpad
 ```
 
-To start Steam Link at boot, point your existing startup service at `steamlink-tool`.
+To start Steam Link at boot, point your existing startup service at `linkpad`.
 
 ## Configuration
 
-Shortcuts are read from `~/.config/steamlink-tool/shortcuts.json`:
+Shortcuts are read from `~/.config/linkpad/shortcuts.json`:
 
 ```json
 {
@@ -77,7 +77,7 @@ Notes:
 
 ### Command environment
 
-Commands run as the same user, in their own session, with standard input from `/dev/null`. Their output goes to the client's log. Steam Link's changes to `PATH`, `LD_LIBRARY_PATH`, `LD_PRELOAD`, `QT_PLUGIN_PATH`, `QT_QPA_PLATFORM` and `TMPDIR` are reverted, and `STEAMLINK_*` variables are removed.
+Commands run as the same user, in their own session, with standard input from `/dev/null`. Their output goes to the client's log. Steam Link's changes to `PATH`, `LD_LIBRARY_PATH`, `LD_PRELOAD`, `QT_PLUGIN_PATH`, `QT_QPA_PLATFORM` and `TMPDIR` are reverted, and `LINKPAD_*` variables are removed.
 
 ## Controller behaviour
 
@@ -91,10 +91,10 @@ Commands run as the same user, in their own session, with standard input from `/
 
 | Variable | Used by | Description |
 | --- | --- | --- |
-| `STEAMLINK_TOOL_CONFIG` | runtime | Path of the configuration file. |
+| `LINKPAD_CONFIG` | runtime | Path of the configuration file. |
 | `XDG_CONFIG_HOME` | runtime | Base directory for the default configuration path. |
-| `STEAMLINK_COMMAND` | runtime | Steam Link launcher to run. Default: `/usr/bin/steamlink`. |
-| `STEAMLINK_RUNTIME_DIR` | runtime | Directory for runtime state. Default: a temporary directory. |
+| `LINKPAD_CLIENT` | runtime | Steam Link launcher to run. Default: `/usr/bin/steamlink`. |
+| `LINKPAD_RUNTIME_DIR` | runtime | Directory for runtime state. Default: a temporary directory. |
 | `STEAMLINK_DIR` | build | Steam Link bundle. Default: `~/.local/share/SteamLink`. |
 | `QT_HEADERS`, `JSON_HEADERS` | build | Use existing Qt 5 or nlohmann/json headers instead of `make headers`. |
 | `PREFIX`, `DESTDIR` | install | Installation prefix (default `/usr/local`) and staging directory. |
@@ -102,17 +102,17 @@ Commands run as the same user, in their own session, with standard input from `/
 
 ## Logs
 
-Messages are written to the client's standard error with the prefix `STEAMLINK_TOOL`. Under systemd:
+Messages are written to the client's standard error with the prefix `LINKPAD`. Under systemd:
 
 ```sh
-journalctl -u steamlink.service | grep STEAMLINK_TOOL
+journalctl -u steamlink.service | grep LINKPAD
 ```
 
 ## Troubleshooting
 
-- **The extension is disabled after an error.** When `STEAMLINK_RUNTIME_DIR` is set and the client exits with an error, later starts run the client without the extension until that directory is cleared (for example, by rebooting when it is under `/run`).
-- **Disable the extension completely.** Create `/etc/steamlink-tool.disabled`.
-- **Unsupported Qt version.** The extension only loads into Steam Link's Qt 5.14.1; it logs `STEAMLINK_TOOL disabled` otherwise.
+- **The extension is disabled after an error.** When `LINKPAD_RUNTIME_DIR` is set and the client exits with an error, later starts run the client without the extension until that directory is cleared (for example, by rebooting when it is under `/run`).
+- **Disable the extension completely.** Create `/etc/linkpad.disabled`.
+- **Unsupported Qt version.** The extension only loads into Steam Link's Qt 5.14.1; it logs `LINKPAD disabled` otherwise.
 
 ## Testing
 

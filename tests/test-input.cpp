@@ -76,18 +76,18 @@ static bool exists(const std::string &path) { return access(path.c_str(), F_OK) 
 
 int main(int argc, char **argv) {
     QApplication app(argc, argv);
-    const char *configEnv = std::getenv("STEAMLINK_TOOL_CONFIG");
-    const char *moduleEnv = std::getenv("STEAMLINK_TOOL_MODULE");
+    const char *configEnv = std::getenv("LINKPAD_CONFIG");
+    const char *moduleEnv = std::getenv("LINKPAD_MODULE");
     if (!configEnv || !moduleEnv) {
-        std::fprintf(stderr, "Run through scripts/test-input\n");
+        std::fprintf(stderr, "Run through make test-input\n");
         return 1;
     }
     void *module = dlopen(moduleEnv, RTLD_NOW | RTLD_NOLOAD);
-    auto pauseInput = module ? reinterpret_cast<void (*)(bool)>(dlsym(module, "steamlink_test_pause_input")) : nullptr;
-    auto activations = module ? reinterpret_cast<unsigned (*)()>(dlsym(module, "steamlink_test_activations")) : nullptr;
+    auto pauseInput = module ? reinterpret_cast<void (*)(bool)>(dlsym(module, "linkpad_test_pause_input")) : nullptr;
+    auto activations = module ? reinterpret_cast<unsigned (*)()>(dlsym(module, "linkpad_test_activations")) : nullptr;
     // What bootstrap.so reports when Valve's QControllerEvent::setButton runs.
     auto nativeButton =
-        module ? reinterpret_cast<void (*)(void *, int, bool)>(dlsym(module, "steamlink_native_button")) : nullptr;
+        module ? reinterpret_cast<void (*)(void *, int, bool)>(dlsym(module, "linkpad_native_button")) : nullptr;
     if (!pauseInput || !activations || !nativeButton) {
         std::fprintf(stderr, "native-test.so test hooks not loaded\n");
         return 1;

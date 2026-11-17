@@ -107,7 +107,7 @@ static int test_rejections() {
 }
 
 static int test_load_file() {
-    char dir[] = "/tmp/steamlink-config-test.XXXXXX";
+    char dir[] = "/tmp/linkpad-config-test.XXXXXX";
     CHECK(mkdtemp(dir));
     const std::string path = std::string(dir) + "/shortcuts.json";
     std::vector<ShortcutConfig> out(1);
@@ -141,16 +141,16 @@ static int test_load_file() {
 }
 
 static int test_config_path() {
-    setenv("STEAMLINK_TOOL_CONFIG", "/custom/file.json", 1);
+    setenv("LINKPAD_CONFIG", "/custom/file.json", 1);
     CHECK(configPath() == "/custom/file.json");
-    unsetenv("STEAMLINK_TOOL_CONFIG");
+    unsetenv("LINKPAD_CONFIG");
     setenv("XDG_CONFIG_HOME", "/xdg", 1);
     setenv("HOME", "/home/someone", 1);
-    CHECK(configPath() == "/xdg/steamlink-tool/shortcuts.json");
+    CHECK(configPath() == "/xdg/linkpad/shortcuts.json");
     setenv("XDG_CONFIG_HOME", "relative", 1);
-    CHECK(configPath() == "/home/someone/.config/steamlink-tool/shortcuts.json");
+    CHECK(configPath() == "/home/someone/.config/linkpad/shortcuts.json");
     unsetenv("XDG_CONFIG_HOME");
-    CHECK(configPath() == "/home/someone/.config/steamlink-tool/shortcuts.json");
+    CHECK(configPath() == "/home/someone/.config/linkpad/shortcuts.json");
     return 0;
 }
 

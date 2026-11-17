@@ -12,21 +12,21 @@ static void (*button_observer)(void *, int, bool);
 
 __attribute__((constructor)) static void load_tool(void)
 {
-    const char *path = getenv("STEAMLINK_TOOL_MODULE");
+    const char *path = getenv("LINKPAD_MODULE");
     const char *(*version)(void) = dlsym(RTLD_DEFAULT, "qVersion");
     if (!path || !version) return;
     if (strcmp(version(), "5.14.1")) {
-        fprintf(stderr, "STEAMLINK_TOOL disabled: unsupported Qt %s\n", version());
+        fprintf(stderr, "LINKPAD disabled: unsupported Qt %s\n", version());
         return;
     }
     void *module = dlopen(path, RTLD_NOW | RTLD_LOCAL);
     if (!module) {
-        fprintf(stderr, "STEAMLINK_TOOL disabled: %s\n", dlerror());
+        fprintf(stderr, "LINKPAD disabled: %s\n", dlerror());
         return;
     }
-    start_tool = (void (*)(void))dlsym(module, "steamlink_tool_start");
-    button_observer = (void (*)(void *, int, bool))dlsym(module, "steamlink_native_button");
-    fprintf(stderr, "STEAMLINK_TOOL loaded qt=%s\n", version());
+    start_tool = (void (*)(void))dlsym(module, "linkpad_start");
+    button_observer = (void (*)(void *, int, bool))dlsym(module, "linkpad_native_button");
+    fprintf(stderr, "LINKPAD loaded qt=%s\n", version());
 }
 
 void intercept_button(void *, int, bool) __asm__("_ZN16QControllerEvent9setButtonENS_9EventTypeEb");

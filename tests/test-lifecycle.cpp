@@ -4,8 +4,8 @@
 #include <QTimer>
 #include <cstdio>
 int main(int argc, char **argv) {
-    const QString socket = qEnvironmentVariable("STEAMLINK_SHORTCUT_SOCKET");
-    if (socket.isEmpty()) { std::fprintf(stderr,"Set STEAMLINK_SHORTCUT_SOCKET for the lifecycle test\n"); return 1; }
+    const QString socket = qEnvironmentVariable("LINKPAD_SOCKET");
+    if (socket.isEmpty()) { std::fprintf(stderr,"Set LINKPAD_SOCKET for the lifecycle test\n"); return 1; }
     for (int i=0; i<3; ++i) {
         {
             QApplication app(argc,argv);

@@ -29,13 +29,13 @@ static bool reaped(pid_t pid) {
 
 static void restoreTestEnvironment() {
     for (const char *key : {"LD_PRELOAD", "LD_LIBRARY_PATH", "QT_PLUGIN_PATH", "QT_QPA_PLATFORM", "PATH", "TMPDIR"})
-        setenv((std::string("STEAMLINK_ORIGINAL_") + key).c_str(), "", 1);
-    setenv("STEAMLINK_ORIGINAL_PATH", "/original/path", 1);
-    setenv("STEAMLINK_ORIGINAL_QT_QPA_PLATFORM", "wayland", 1);
+        setenv((std::string("LINKPAD_ORIGINAL_") + key).c_str(), "", 1);
+    setenv("LINKPAD_ORIGINAL_PATH", "/original/path", 1);
+    setenv("LINKPAD_ORIGINAL_QT_QPA_PLATFORM", "wayland", 1);
     setenv("LD_PRELOAD", "unwanted-steamlink-hook.so", 1);
     setenv("LD_LIBRARY_PATH", "/unwanted/bundled/libraries", 1);
     setenv("QT_PLUGIN_PATH", "/unwanted/plugins", 1);
-    setenv("STEAMLINK_PRIVATE", "secret", 1);
+    setenv("LINKPAD_PRIVATE", "secret", 1);
 }
 
 static int test_arguments_and_environment() {
@@ -50,20 +50,20 @@ static int test_arguments_and_environment() {
     CHECK(data.find("ARG=two words\nARG=$(not a shell);literal\n") != std::string::npos);
     CHECK(data.find("LD_PRELOAD=\nLD_LIBRARY_PATH=\nQT_PLUGIN_PATH=\nQT_QPA_PLATFORM=wayland\nPATH=/original/path\nTMPDIR=\n") !=
           std::string::npos);
-    CHECK(data.find("STEAMLINK_") == std::string::npos);
+    CHECK(data.find("LINKPAD_") == std::string::npos);
     return 0;
 }
 
 static int test_child_environment() {
     restoreTestEnvironment();
-    unsetenv("STEAMLINK_ORIGINAL_TMPDIR");
+    unsetenv("LINKPAD_ORIGINAL_TMPDIR");
     setenv("TMPDIR", "/bundled/tmp", 1);
-    unsetenv("STEAMLINK_ORIGINAL_PATH");
+    unsetenv("LINKPAD_ORIGINAL_PATH");
     setenv("PATH", "/kept/path", 1);
     const std::vector<std::string> env = childEnvironment(environ);
     bool path = false;
     for (const std::string &entry : env) {
-        CHECK(entry.rfind("STEAMLINK_", 0) != 0);
+        CHECK(entry.rfind("LINKPAD_", 0) != 0);
         CHECK(entry.rfind("TMPDIR=", 0) != 0);        // no saved value: removed
         CHECK(entry.rfind("LD_PRELOAD=", 0) != 0);    // saved empty: removed
         path |= entry == "PATH=/kept/path";            // PATH without a saved value is kept
@@ -83,7 +83,7 @@ static int test_restored_path_lookup() {
         out << in.rdbuf();
     }
     CHECK(chmod((bin + "/" + bare).c_str(), 0700) == 0);
-    setenv("STEAMLINK_ORIGINAL_PATH", bin.c_str(), 1);
+    setenv("LINKPAD_ORIGINAL_PATH", bin.c_str(), 1);
     setenv("PATH", "/wrong/parent/path", 1);
     CHECK(resolveExecutable(bare, bin, directory) == bin + "/" + bare);
     CHECK(resolveExecutable(bare, "/wrong/parent/path", directory).empty());
@@ -169,11 +169,12 @@ int main() {
     if (readlink("/proc/self/exe", self, sizeof self - 1) <= 0) return 1;
     target = std::string(self);
     target = target.substr(0, target.rfind('/')) + "/command-target";
-    char temporary[] = "/tmp/steamlink-spawn-test.XXXXXX";
+    char temporary[] = "/tmp/linkpad-spawn-test.XXXXXX";
     if (!mkdtemp(temporary)) return 1;
     directory = temporary;
     const int failed = test_arguments_and_environment() || test_child_environment() || test_restored_path_lookup() ||
                        test_rejections() || test_working_directory() || test_reap_child() || test_partial_failure();
+    unsetenv("LD_PRELOAD");  // set to a fake hook by the tests above
     if (std::system(("/bin/rm -rf '" + directory + "'").c_str()) != 0) std::fprintf(stderr, "cleanup failed\n");
     if (failed) return 1;
     std::puts("PASS command arguments, clean environment, restored PATH, working directory and partial failure");

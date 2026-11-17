@@ -13,7 +13,7 @@
 #include <string>
 #include <vector>
 
-// Variables the launcher saved as STEAMLINK_ORIGINAL_<name> before Steam Link
+// Variables the launcher saved as LINKPAD_ORIGINAL_<name> before Steam Link
 // changed them for its bundled client.
 inline const std::vector<std::string> &restoredVariables() {
     static const std::vector<std::string> names = {
@@ -23,7 +23,7 @@ inline const std::vector<std::string> &restoredVariables() {
 
 // The parent's environment with launcher originals restored: an empty saved
 // value unsets the variable, and a missing saved value unsets it too (except
-// PATH, which is kept). Every STEAMLINK_* variable is dropped.
+// PATH, which is kept). Every LINKPAD_* variable is dropped.
 inline std::vector<std::string> childEnvironment(char **parent) {
     std::vector<std::string> inherited, result;
     for (char **entry = parent; entry && *entry; ++entry) inherited.emplace_back(*entry);
@@ -45,12 +45,12 @@ inline std::vector<std::string> childEnvironment(char **parent) {
     };
     for (const std::string &entry : inherited) {
         const std::string name = entry.substr(0, entry.find('='));
-        if (name.compare(0, 10, "STEAMLINK_") == 0 || restored(name)) continue;
+        if (name.compare(0, 8, "LINKPAD_") == 0 || restored(name)) continue;
         result.push_back(entry);
     }
     for (const std::string &name : restoredVariables()) {
         std::string value;
-        if (find("STEAMLINK_ORIGINAL_" + name, value)) {
+        if (find("LINKPAD_ORIGINAL_" + name, value)) {
             if (!value.empty()) result.push_back(name + "=" + value);
         } else if (name == "PATH" && find(name, value)) {
             result.push_back(name + "=" + value);

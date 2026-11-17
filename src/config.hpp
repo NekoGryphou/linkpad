@@ -1,5 +1,5 @@
 #pragma once
-// Shortcut configuration: ~/.config/steamlink-tool/shortcuts.json.
+// Shortcut configuration: ~/.config/linkpad/shortcuts.json.
 // Independent of Qt. nlohmann/json is used only through its non-throwing API.
 #include <nlohmann/json.hpp>
 
@@ -54,11 +54,11 @@ inline std::string homeDirectory() {
 }
 
 inline std::string configPath() {
-    const char *custom = std::getenv("STEAMLINK_TOOL_CONFIG");
+    const char *custom = std::getenv("LINKPAD_CONFIG");
     if (custom && *custom) return custom;
     const char *xdg = std::getenv("XDG_CONFIG_HOME");
     const std::string base = xdg && *xdg == '/' ? std::string(xdg) : homeDirectory() + "/.config";
-    return base + "/steamlink-tool/shortcuts.json";
+    return base + "/linkpad/shortcuts.json";
 }
 
 namespace config_detail {

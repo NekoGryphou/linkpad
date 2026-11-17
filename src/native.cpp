@@ -55,7 +55,7 @@ std::int64_t nowMs() {
 }
 
 void report(const std::string &message) {
-    std::fprintf(stderr, "STEAMLINK_TOOL %s\n", message.c_str());
+    std::fprintf(stderr, "LINKPAD %s\n", message.c_str());
 }
 
 // Exceptions must never unwind into Steam Link's event loop.
@@ -465,7 +465,7 @@ public:
             });
         }
         discover();
-        const char *socket = std::getenv("STEAMLINK_SHORTCUT_SOCKET");
+        const char *socket = std::getenv("LINKPAD_SOCKET");
         if (socket && *socket) listen(socket);
         report("ready");
     }
@@ -496,7 +496,7 @@ public:
         return swallow;
     }
 
-#ifdef STEAMLINK_TEST_HOOKS
+#ifdef LINKPAD_TEST_HOOKS
     // Lets the input test queue controller events that Qt has not delivered.
     void pauseInput(bool paused) {
         for (auto &entry : pads) entry.second->reader->setEnabled(!paused);
@@ -510,21 +510,21 @@ QPointer<Shortcut> instance;
 
 }  // namespace
 
-extern "C" void steamlink_native_button(void *event, int button, bool down) noexcept {
+extern "C" void linkpad_native_button(void *event, int button, bool down) noexcept {
     nativeButtons.record(event, button, down);
 }
 
-extern "C" void steamlink_tool_start() {
+extern "C" void linkpad_start() {
     if (instance) return;  // QApplication::exec may run more than once
     guarded("start", [] { instance = new Shortcut; });
 }
 
-#ifdef STEAMLINK_TEST_HOOKS
-extern "C" void steamlink_test_pause_input(bool paused) {
+#ifdef LINKPAD_TEST_HOOKS
+extern "C" void linkpad_test_pause_input(bool paused) {
     if (instance) instance->pauseInput(paused);
 }
 
-extern "C" unsigned steamlink_test_activations() {
+extern "C" unsigned linkpad_test_activations() {
     Shortcut *shortcut = instance.data();
     return shortcut ? shortcut->activationCount() : 0;
 }

@@ -10,14 +10,14 @@ if [ -n "$DESTDIR" ]; then
     case "$DESTDIR" in /*) ;; *) echo 'DESTDIR must be absolute' >&2; exit 1;; esac
     case "/$DESTDIR/" in */../*) echo 'DESTDIR must not contain parent traversal' >&2; exit 1;; esac
     destination=$(realpath -m "$DESTDIR")
-    for path in "$DESTDIR$PREFIX/lib/steamlink-tool" "$DESTDIR$PREFIX/bin"; do
+    for path in "$DESTDIR$PREFIX/lib/linkpad" "$DESTDIR$PREFIX/bin"; do
         case "$(realpath -m "$path")/" in "$destination/"*) ;; *) echo 'Destination symlink escapes DESTDIR' >&2; exit 1;; esac
     done
 fi
-lib="$DESTDIR$PREFIX/lib/steamlink-tool"
-bin="$DESTDIR$PREFIX/bin/steamlink-tool"
-marker="$lib/.installed-by-steamlink-tool"
-link=../lib/steamlink-tool/launch
+lib="$DESTDIR$PREFIX/lib/linkpad"
+bin="$DESTDIR$PREFIX/bin/linkpad"
+marker="$lib/.installed-by-linkpad"
+link=../lib/linkpad/launch
 case "${1:-install}" in
 install)
     for file in bootstrap.so native.so; do
