@@ -156,7 +156,7 @@ int main() {
     directory = temporary;
     const int failed = test_arguments_and_environment() || test_child_environment() || test_restored_path_lookup() ||
                        test_rejections() || test_working_directory() || test_partial_failure();
-    if (std::system(("rm -rf '" + directory + "'").c_str()) != 0) std::fprintf(stderr, "cleanup failed\n");
+    if (std::system(("/bin/rm -rf '" + directory + "'").c_str()) != 0) std::fprintf(stderr, "cleanup failed\n");
     if (failed) return 1;
     std::puts("PASS command arguments, clean environment, restored PATH, working directory and partial failure");
 }

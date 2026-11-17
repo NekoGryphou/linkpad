@@ -54,8 +54,8 @@ inline std::string homeDirectory() {
 }
 
 inline std::string configPath() {
-    const char *override = std::getenv("STEAMLINK_TOOL_CONFIG");
-    if (override && *override) return override;
+    const char *custom = std::getenv("STEAMLINK_TOOL_CONFIG");
+    if (custom && *custom) return custom;
     const char *xdg = std::getenv("XDG_CONFIG_HOME");
     const std::string base = xdg && *xdg == '/' ? std::string(xdg) : homeDirectory() + "/.config";
     return base + "/steamlink-tool/shortcuts.json";

@@ -7,4 +7,4 @@ export LD_LIBRARY_PATH="$STEAMLINK_DIR/lib:$STEAMLINK_DIR/Qt-5.14.1/lib${LD_LIBR
 export QT_QPA_PLATFORM=offscreen QT_PLUGIN_PATH="$STEAMLINK_DIR/Qt-5.14.1/plugins"
 stage=$(mktemp -d)
 trap 'rm -rf "$stage"' EXIT
-STEAMLINK_TOOL_CONFIG="$stage/action.json" STEAMLINK_SHORTCUT_SOCKET="$stage/state.sock" STEAMLINK_PROBE_MODULE="$OUT_DIR/native.so" LD_PRELOAD="$OUT_DIR/bootstrap.so" timeout 12s "$OUT_DIR/test-input"
+STEAMLINK_TOOL_CONFIG="$stage/shortcuts.json" STEAMLINK_SHORTCUT_SOCKET="$stage/state.sock" STEAMLINK_TOOL_MODULE="$OUT_DIR/native-test.so" LD_PRELOAD="$OUT_DIR/bootstrap.so" timeout 40s "$OUT_DIR/test-input"

@@ -21,12 +21,11 @@ export STEAMLINK_ORIGINAL_QT_PLUGIN_PATH=${QT_PLUGIN_PATH-}
 export STEAMLINK_ORIGINAL_QT_QPA_PLATFORM=${QT_QPA_PLATFORM-}
 export STEAMLINK_ORIGINAL_PATH=${PATH-}
 export STEAMLINK_ORIGINAL_TMPDIR=${TMPDIR-}
-export STEAMLINK_PROBE_MODULE="$base/native.so"
-export STEAMLINK_SHORTCUT_SOCKET="$runtime/state.sock"
+export STEAMLINK_TOOL_MODULE="$base/native.so"
 export LD_PRELOAD="$base/bootstrap.so${LD_PRELOAD:+:$LD_PRELOAD}"
 "$command" "$@"
 result=$?
-unset LD_PRELOAD STEAMLINK_PROBE_MODULE
+unset LD_PRELOAD STEAMLINK_TOOL_MODULE
 if [ "$result" -ne 0 ]; then
     : > "$runtime/disabled"
     logger -t steamlink-tool "Client exited with status $result; extension disabled for subsequent launches in this runtime directory"
