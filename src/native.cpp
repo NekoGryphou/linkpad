@@ -9,6 +9,7 @@
 #include "chord.hpp"
 #include "spawn.hpp"
 #include "home.hpp"
+#include "native-records.hpp"
 
 #include <QApplication>
 #include <QEvent>
@@ -38,7 +39,6 @@
 #include <exception>
 #include <functional>
 #include <map>
-#include <mutex>
 #include <set>
 #include <string>
 #include <utility>
@@ -47,7 +47,6 @@
 namespace {
 
 constexpr int controllerEventType = 0x300;  // Valve's QControllerEvent
-constexpr std::size_t maximumNativeRecords = 32;
 
 std::int64_t nowMs() {
     timespec now = {};
@@ -71,27 +70,7 @@ void guarded(const char *where, Function &&function) {
     }
 }
 
-// QControllerEvent::setButton calls, recorded by bootstrap.so. Events can be
-// built on another thread and delivered later, so records are kept per event.
-struct NativeButton {
-    const void *event;
-    int button;
-    bool down;
-};
-std::mutex nativeMutex;
-std::vector<NativeButton> nativeButtons;
-
-std::vector<NativeButton> takeNativeButtons(const void *event) {
-    std::lock_guard<std::mutex> lock(nativeMutex);
-    std::vector<NativeButton> taken;
-    auto keep = std::remove_if(nativeButtons.begin(), nativeButtons.end(), [&](const NativeButton &record) {
-        if (record.event != event) return false;
-        taken.push_back(record);
-        return true;
-    });
-    nativeButtons.erase(keep, nativeButtons.end());
-    return taken;
-}
+NativeRecords nativeButtons;
 
 // Uses QObject::event(SockAct) rather than the activated signal, whose
 // signature differs between the Qt 5.15 headers and Qt 5.14 libraries.
@@ -273,9 +252,7 @@ class Shortcut final : public QObject {
         }
         auto *watch = new ChildWatch(this, pid, fd);
         watch->reader = new Readable(fd, watch, [watch] {
-            int status = 0;
-            const pid_t result = waitpid(watch->pid, &status, WNOHANG);
-            if (result == watch->pid || (result < 0 && errno == ECHILD)) {
+            if (reapChild(watch->pid)) {
                 watch->reader->setEnabled(false);
                 watch->deleteLater();
             }
@@ -403,7 +380,7 @@ class Shortcut final : public QObject {
     }
 
     bool filterController(QEvent *event) {
-        const std::vector<NativeButton> records = takeNativeButtons(event);
+        const std::vector<NativeButton> records = nativeButtons.take(event);
         if (records.empty()) return false;
         bool pressed = false;
         for (const auto &record : records) pressed |= record.down;
@@ -533,10 +510,8 @@ QPointer<Shortcut> instance;
 
 }  // namespace
 
-extern "C" void steamlink_native_button(void *event, int button, bool down) {
-    std::lock_guard<std::mutex> lock(nativeMutex);
-    if (nativeButtons.size() >= maximumNativeRecords) nativeButtons.erase(nativeButtons.begin());
-    nativeButtons.push_back(NativeButton{event, button, down});
+extern "C" void steamlink_native_button(void *event, int button, bool down) noexcept {
+    nativeButtons.record(event, button, down);
 }
 
 extern "C" void steamlink_tool_start() {

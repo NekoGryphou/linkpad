@@ -127,6 +127,24 @@ static int test_working_directory() {
     return 0;
 }
 
+static int test_reap_child() {
+    restoreTestEnvironment();
+    pid_t pid = 0;
+    std::string error;
+    CHECK(spawnCommand({"/bin/sleep", "0.3"}, directory, pid, error));
+    CHECK(!reapChild(pid));                    // still running: keep watching
+    bool reaped = false;
+    for (int i = 0; i < 300 && !reaped; ++i) {
+        usleep(10000);
+        reaped = reapChild(pid);
+    }
+    CHECK(reaped);                             // exited and collected
+    int status = 0;
+    CHECK(waitpid(pid, &status, WNOHANG) < 0);  // nothing left to collect
+    CHECK(reapChild(1));                       // not our child: stop watching instead of retrying
+    return 0;
+}
+
 static int test_partial_failure() {
     restoreTestEnvironment();
     const std::vector<std::vector<std::string>> commands = {
@@ -155,7 +173,7 @@ int main() {
     if (!mkdtemp(temporary)) return 1;
     directory = temporary;
     const int failed = test_arguments_and_environment() || test_child_environment() || test_restored_path_lookup() ||
-                       test_rejections() || test_working_directory() || test_partial_failure();
+                       test_rejections() || test_working_directory() || test_reap_child() || test_partial_failure();
     if (std::system(("/bin/rm -rf '" + directory + "'").c_str()) != 0) std::fprintf(stderr, "cleanup failed\n");
     if (failed) return 1;
     std::puts("PASS command arguments, clean environment, restored PATH, working directory and partial failure");

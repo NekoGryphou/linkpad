@@ -2,7 +2,15 @@
 # Print the include directory containing nlohmann/json.hpp.
 set -eu
 root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
-for path in ${JSON_HEADERS:-} "$root/.cache/json-headers/usr/include" /usr/include; do
+if [ -n "${JSON_HEADERS:-}" ]; then
+    if [ -f "$JSON_HEADERS/nlohmann/json.hpp" ]; then
+        echo "$JSON_HEADERS"
+        exit 0
+    fi
+    echo "JSON_HEADERS=$JSON_HEADERS does not contain nlohmann/json.hpp." >&2
+    exit 1
+fi
+for path in "$root/.cache/json-headers/usr/include" /usr/include; do
     if [ -f "$path/nlohmann/json.hpp" ]; then
         echo "$path"
         exit 0

@@ -12,11 +12,11 @@ make test
 sudo make install
 ```
 
-Set `STEAMLINK_DIR` if the bundle is outside `~/.local/share/SteamLink`, or `QT_HEADERS` / `JSON_HEADERS` to use existing headers. Tested on ARM64 Raspberry Pi OS with Valve Qt 5.14.1 and the English home screen.
+The tool reads `shortcuts.json` with the nlohmann/json library, which only needs its headers at build time. Set `STEAMLINK_DIR` if the bundle is outside `~/.local/share/SteamLink`, or `QT_HEADERS` / `JSON_HEADERS` to use headers you already have. Tested on ARM64 Raspberry Pi OS with Valve Qt 5.14.1 and the English home screen.
 
 ## Configure
 
-Create `~/.config/steamlink-tool/shortcuts.json`:
+Create `~/.config/steamlink-tool/shortcuts.json` (or `$XDG_CONFIG_HOME/steamlink-tool/shortcuts.json` when that variable is set):
 
 ```json
 {
@@ -40,10 +40,12 @@ Create `~/.config/steamlink-tool/shortcuts.json`:
 
 - `buttons`: `a`, `b`, `x`, `y`, `view`, `menu`, `guide`, `lb`, `rb`, `ls`, `rs`. Exactly these buttons must be held on one controller; each combination may appear once.
 - `hold_ms`: 100–60000, default 1000.
-- `commands`: started in order, without waiting for each other. A command that cannot start is logged and the others still start. Each array entry is one argument; no shell interprets it.
+- `commands`: started in order, without waiting for each other. A command that cannot start is logged and the others still start. Each array entry is one argument; no shell interprets it. A command name without `/` is looked up in `PATH`; a relative path starts from `working_directory`. Scripts need a `#!` first line, such as `#!/bin/sh`, and execute permission.
 - `working_directory`: absolute path, default your home.
 
-Changes apply on the next button press; no restart. An invalid file disables all shortcuts and logs the reason. Commands run as your user with the launcher's original environment. Set `STEAMLINK_TOOL_CONFIG` to use another file.
+Changes apply on the next button press; no restart. An invalid file disables all shortcuts and logs the reason. Set `STEAMLINK_TOOL_CONFIG` to use another file.
+
+Commands run as your user, in their own session, with no input. They get the environment `steamlink-tool` was started with: Steam Link's changes to `PATH`, `LD_LIBRARY_PATH`, `LD_PRELOAD`, `QT_PLUGIN_PATH`, `QT_QPA_PLATFORM` and `TMPDIR` are undone, and `STEAMLINK_*` variables are removed. Their output goes to the client's log.
 
 On the home screen, Steam Link does not receive View, Menu or Guide while the held buttons can still become one of your combinations (View alone would otherwise quit Steam Link). Once a combination is fully held, Steam Link ignores controller buttons until all are released. A, B, X, Y, bumpers and sticks keep their normal function until a combination is complete, so include View, Menu or Guide in every combination.
 

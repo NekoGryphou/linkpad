@@ -5,6 +5,7 @@
 #include <signal.h>
 #include <spawn.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
 #include <unistd.h>
 
 #include <cerrno>
@@ -136,6 +137,18 @@ inline bool spawnCommand(const std::vector<std::string> &argv, const std::string
     }
     error.clear();
     return true;
+}
+
+// Collect a started command without blocking. True when there is nothing more
+// to wait for: it was collected, or waitpid failed (for example, not our child).
+inline bool reapChild(pid_t pid) {
+    for (;;) {
+        int status = 0;
+        const pid_t result = waitpid(pid, &status, WNOHANG);
+        if (result == 0) return false;
+        if (result < 0 && errno == EINTR) continue;
+        return true;
+    }
 }
 
 struct SpawnResult {
