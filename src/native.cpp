@@ -173,7 +173,6 @@ class Shortcut final : public QObject {
     std::vector<ShortcutConfig> shortcuts;
     std::vector<ChordRule> rules;
     std::string configKey;
-    std::string configMessage;
     std::set<int> swallowed;
     unsigned activations = 0;
     unsigned checks = 0;
@@ -224,11 +223,15 @@ class Shortcut final : public QObject {
         shortcuts = valid ? loaded : std::vector<ShortcutConfig>();
         rules.clear();
         for (const auto &shortcut : shortcuts) rules.push_back(ChordRule{shortcut.buttons, shortcut.holdMs});
-        const std::string message = valid ? "config_loaded shortcuts=" + std::to_string(shortcuts.size())
-                                          : "config_error=" + error;
-        if (message != configMessage) report(message);
-        configMessage = message;
-        for (auto &entry : pads) resync(entry.second);
+        report(valid ? "config_loaded shortcuts=" + std::to_string(shortcuts.size()) : "config_error=" + error);
+        // Buttons already processed as held stay blocked until released. The
+        // kernel state is not used here: it already contains the press being
+        // handled, which would block the combination the user is pressing now.
+        for (auto &entry : pads) {
+            Pad *p = entry.second;
+            p->chord.configure(rules, p->chord.pressed);
+            p->hold.stop();
+        }
     }
 
     bool resync(Pad *p) {
