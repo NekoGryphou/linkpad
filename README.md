@@ -1,22 +1,44 @@
 # Steam Link Tool
 
-Run commands by holding Xbox controller button combinations on Steam Link's home screen. Uses native UI state and controller events; no screenshot detection, polling or Python.
+Run commands from Steam Link's home screen by holding Xbox controller button combinations.
 
-## Build and install
+- Multiple shortcuts, each with its own button combination, hold time and commands
+- Shortcuts trigger only on the exact Steam Link home screen
+- Configuration is reloaded automatically; no restart needed
+- Works with the official Steam Link client; no screenshots or polling
 
-Build on the Steam Link machine with a C/C++17 compiler and Make. Steam Link must have been launched once to download its bundled libraries.
+## Requirements
+
+- Raspberry Pi OS / Debian (tested on ARM64, Raspberry Pi 3 B+)
+- Official Steam Link client, launched once so it has downloaded its bundled Qt 5.14.1
+- Xbox controller (Microsoft vendor ID `045e`)
+- C/C++17 compiler and Make
+
+## Installation
+
+On the Steam Link machine:
 
 ```sh
-make headers     # Debian/Raspberry Pi OS: download Qt and nlohmann/json headers without installing them
+make headers      # download Qt and nlohmann/json headers (nothing is installed)
 make test
 sudo make install
 ```
 
-The tool reads `shortcuts.json` with the nlohmann/json library, which only needs its headers at build time. Set `STEAMLINK_DIR` if the bundle is outside `~/.local/share/SteamLink`, or `QT_HEADERS` / `JSON_HEADERS` to use headers you already have. Tested on ARM64 Raspberry Pi OS with Valve Qt 5.14.1 and the English home screen.
+This installs `/usr/local/bin/steamlink-tool` and `/usr/local/lib/steamlink-tool/`. Services, drivers and system configuration are not modified.
 
-## Configure
+## Usage
 
-Create `~/.config/steamlink-tool/shortcuts.json` (or `$XDG_CONFIG_HOME/steamlink-tool/shortcuts.json` when that variable is set):
+Run the tool instead of the official launcher:
+
+```sh
+steamlink-tool
+```
+
+To start Steam Link at boot, point your existing startup service at `steamlink-tool`.
+
+## Configuration
+
+Shortcuts are read from `~/.config/steamlink-tool/shortcuts.json`:
 
 ```json
 {
@@ -38,36 +60,76 @@ Create `~/.config/steamlink-tool/shortcuts.json` (or `$XDG_CONFIG_HOME/steamlink
 }
 ```
 
-- `buttons`: `a`, `b`, `x`, `y`, `view`, `menu`, `guide`, `lb`, `rb`, `ls`, `rs`. Exactly these buttons must be held on one controller; each combination may appear once.
-- `hold_ms`: 100–60000, default 1000.
-- `commands`: started in order, without waiting for each other. A command that cannot start is logged and the others still start. Each array entry is one argument; no shell interprets it. A command name without `/` is looked up in `PATH`; a relative path starts from `working_directory`. Scripts need a `#!` first line, such as `#!/bin/sh`, and execute permission.
-- `working_directory`: absolute path, default your home.
+| Key | Required | Description |
+| --- | --- | --- |
+| `buttons` | yes | Buttons held together on one controller: `a`, `b`, `x`, `y`, `view`, `menu`, `guide`, `lb`, `rb`, `ls`, `rs`. Each combination may be used once. |
+| `hold_ms` | no | Hold time in milliseconds, 100–60000. Default: `1000`. |
+| `commands` | yes | Commands to start, in order, without waiting for each other. Each command is an argument array; no shell is involved. |
+| `working_directory` | no | Absolute path the commands start in. Default: your home directory. |
 
-Changes apply on the next button press; no restart. An invalid file disables all shortcuts and logs the reason. Set `STEAMLINK_TOOL_CONFIG` to use another file.
+Notes:
 
-Commands run as your user, in their own session, with no input. They get the environment `steamlink-tool` was started with: Steam Link's changes to `PATH`, `LD_LIBRARY_PATH`, `LD_PRELOAD`, `QT_PLUGIN_PATH`, `QT_QPA_PLATFORM` and `TMPDIR` are undone, and `STEAMLINK_*` variables are removed. Their output goes to the client's log.
+- Every combination must include `view`, `menu` or `guide` (see [Controller behaviour](#controller-behaviour)).
+- A command without `/` is looked up in `PATH`. Relative paths start from `working_directory`.
+- Scripts need a `#!` line (for example `#!/bin/sh`) and execute permission.
+- If the file is invalid, all shortcuts are disabled and the error is logged.
+- If one command fails to start, the others still start.
 
-On the home screen, Steam Link does not receive View, Menu or Guide while the held buttons can still become one of your combinations (View alone would otherwise quit Steam Link). Once a combination is fully held, Steam Link ignores controller buttons until all are released. A, B, X, Y, bumpers and sticks keep their normal function until a combination is complete, so include View, Menu or Guide in every combination.
+### Command environment
 
-## Run
+Commands run as the same user, in their own session, with standard input from `/dev/null`. Their output goes to the client's log. Steam Link's changes to `PATH`, `LD_LIBRARY_PATH`, `LD_PRELOAD`, `QT_PLUGIN_PATH`, `QT_QPA_PLATFORM` and `TMPDIR` are reverted, and `STEAMLINK_*` variables are removed.
 
-Close any other client instance, then run:
+## Controller behaviour
+
+- A combination must be held exactly: no extra buttons, on a single controller.
+- After a shortcut fires, all buttons must be released before it can fire again.
+- On the home screen, View, Menu and Guide are not passed to Steam Link while the held buttons can still become a combination. Pressing View alone otherwise quits Steam Link.
+- While a full combination is held, no controller buttons are passed to Steam Link.
+- A, B, X, Y, bumpers and sticks behave normally until a combination is complete.
+
+## Environment variables
+
+| Variable | Used by | Description |
+| --- | --- | --- |
+| `STEAMLINK_TOOL_CONFIG` | runtime | Path of the configuration file. |
+| `XDG_CONFIG_HOME` | runtime | Base directory for the default configuration path. |
+| `STEAMLINK_COMMAND` | runtime | Steam Link launcher to run. Default: `/usr/bin/steamlink`. |
+| `STEAMLINK_RUNTIME_DIR` | runtime | Directory for runtime state. Default: a temporary directory. |
+| `STEAMLINK_DIR` | build | Steam Link bundle. Default: `~/.local/share/SteamLink`. |
+| `QT_HEADERS`, `JSON_HEADERS` | build | Use existing Qt 5 or nlohmann/json headers instead of `make headers`. |
+| `PREFIX`, `DESTDIR` | install | Installation prefix (default `/usr/local`) and staging directory. |
+| `OUT_DIR`, `CC`, `CXX` | build | Build output directory and compilers. |
+
+## Logs
+
+Messages are written to the client's standard error with the prefix `STEAMLINK_TOOL`. Under systemd:
 
 ```sh
-steamlink-tool
+journalctl -u steamlink.service | grep STEAMLINK_TOOL
 ```
 
-It wraps the official Steam Link launcher. Existing startup services can invoke this command too. Installation does not change services, drivers, LEDs or networking. Messages are prefixed `STEAMLINK_TOOL` in the client's log.
+## Troubleshooting
 
-## Test and uninstall
+- **The extension is disabled after an error.** When `STEAMLINK_RUNTIME_DIR` is set and the client exits with an error, later starts run the client without the extension until that directory is cleared (for example, by rebooting when it is under `/run`).
+- **Disable the extension completely.** Create `/etc/steamlink-tool.disabled`.
+- **Unsupported Qt version.** The extension only loads into Steam Link's Qt 5.14.1; it logs `STEAMLINK_TOOL disabled` otherwise.
+
+## Testing
 
 ```sh
-make test-unit    # Tests without Qt; also run on a PC after make headers-json
-make test         # Requires Steam Link's bundled Qt libraries
-make test-input   # Virtual-controller test; requires /dev/uinput access
+make test-unit    # no Qt needed; runs on a PC after `make headers-json`
+make test         # needs Steam Link's bundled Qt libraries
+make test-input   # virtual controller; needs /dev/uinput access and no other client running
+```
+
+## Uninstall
+
+```sh
 sudo make uninstall
 ```
 
-Stop other client instances before `test-input`. User configuration is preserved on uninstall. `PREFIX`, `DESTDIR` and `OUT_DIR` are supported; `make clean` removes build output.
+User configuration is kept. `make clean` removes build output.
 
-The repo contains only tool source, build/install scripts and tests. License undecided.
+## License
+
+[MIT](LICENSE)
