@@ -181,6 +181,41 @@ static int test_active() {
     return 0;
 }
 
+static int test_candidate() {
+    Chord c = make({viewMenu, viewX});
+    CHECK(!c.candidate());                              // nothing held
+    c.update(BTN_SELECT, true, true, 0);
+    CHECK(c.candidate());                               // start of view+menu and view+x
+    c.update(BTN_START, true, true, 0);
+    CHECK(c.candidate());                               // complete combination
+    c.update(BTN_START, false, true, 10);
+    c.update(BTN_SELECT, false, true, 10);
+    c.update(BTN_SOUTH, true, true, 20);
+    CHECK(!c.candidate());                              // A is in no combination
+    c.update(BTN_SELECT, true, true, 30);
+    CHECK(!c.candidate());                              // view+a is not the start of any combination
+    c.update(BTN_SOUTH, false, true, 40);
+    CHECK(!c.candidate());                              // latched by the release
+    Chord held;
+    held.configure({viewMenu}, {BTN_SELECT});
+    CHECK(!held.candidate());                           // held before configuration
+    Chord none = make({});
+    none.update(BTN_SELECT, true, true, 0);
+    CHECK(!none.candidate());                           // no shortcuts configured
+    Chord withA = make({viewMenuA, ChordRule{{BTN_TL, BTN_TR}, 1000}});
+    withA.update(BTN_SOUTH, true, true, 0);
+    CHECK(!withA.candidate());                          // A alone keeps its home-screen function
+    withA.update(BTN_SELECT, true, true, 10);
+    CHECK(withA.candidate());                           // view+a can still become view+menu+a
+    withA.update(BTN_SELECT, false, true, 20);
+    withA.update(BTN_SOUTH, false, true, 20);
+    withA.update(BTN_TL, true, true, 30);
+    CHECK(!withA.candidate());                          // no View, Menu or Guide held
+    withA.update(BTN_TR, true, true, 40);
+    CHECK(withA.active());                              // a complete combination is still reserved
+    return 0;
+}
+
 static int test_device_isolation() {
     Chord one = make({viewMenu}), two = make({viewMenu});
     one.update(BTN_SELECT, true, true, 0);
@@ -194,7 +229,7 @@ int main() {
     if (test_basic_fire() || test_custom_hold() || test_overlap_no_fallback() || test_two_rules_independent() ||
         test_release_rearm() || test_release_before_deadline() || test_home_guard() ||
         test_reconfigure_while_held() || test_resync_blocks() || test_extra_button_no_match() ||
-        test_ignores_unrelated_codes() || test_active() || test_device_isolation())
+        test_ignores_unrelated_codes() || test_active() || test_candidate() || test_device_isolation())
         return 1;
     std::puts("PASS chord combinations, overlap, release, home guard, resync and isolation");
 }

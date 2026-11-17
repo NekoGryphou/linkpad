@@ -45,7 +45,7 @@ Create `~/.config/steamlink-tool/shortcuts.json`:
 
 Changes apply on the next button press; no restart. An invalid file disables all shortcuts and logs the reason. Commands run as your user with the launcher's original environment. Set `STEAMLINK_TOOL_CONFIG` to use another file.
 
-Once a combination is fully held, Steam Link ignores controller buttons until all are released. Buttons pressed before the combination is complete still reach Steam Link, so start combinations with View, Menu or Guide.
+On the home screen, Steam Link does not receive View, Menu or Guide while the held buttons can still become one of your combinations (View alone would otherwise quit Steam Link). Once a combination is fully held, Steam Link ignores controller buttons until all are released. A, B, X, Y, bumpers and sticks keep their normal function until a combination is complete, so include View, Menu or Guide in every combination.
 
 ## Run
 

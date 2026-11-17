@@ -10,4 +10,5 @@ export QT_PLUGIN_PATH="$STEAMLINK_DIR/Qt-5.14.1/plugins"
 "$OUT_DIR/test-home"
 stage=$(mktemp -d)
 trap 'rm -rf "$stage"' EXIT
-STEAMLINK_TOOL_MODULE="$OUT_DIR/native.so" STEAMLINK_SHORTCUT_SOCKET="$stage/state.sock" LD_PRELOAD="$OUT_DIR/bootstrap.so" timeout 10s "$OUT_DIR/test-lifecycle"
+printf '{"shortcuts": []}\n' > "$stage/shortcuts.json"
+STEAMLINK_TOOL_CONFIG="$stage/shortcuts.json" STEAMLINK_TOOL_MODULE="$OUT_DIR/native.so" STEAMLINK_SHORTCUT_SOCKET="$stage/state.sock" LD_PRELOAD="$OUT_DIR/bootstrap.so" timeout 10s "$OUT_DIR/test-lifecycle"

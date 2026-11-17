@@ -85,7 +85,10 @@ int main(int argc, char **argv) {
     void *module = dlopen(moduleEnv, RTLD_NOW | RTLD_NOLOAD);
     auto pauseInput = module ? reinterpret_cast<void (*)(bool)>(dlsym(module, "steamlink_test_pause_input")) : nullptr;
     auto activations = module ? reinterpret_cast<unsigned (*)()>(dlsym(module, "steamlink_test_activations")) : nullptr;
-    if (!pauseInput || !activations) {
+    // What bootstrap.so reports when Valve's QControllerEvent::setButton runs.
+    auto nativeButton =
+        module ? reinterpret_cast<void (*)(void *, int, bool)>(dlsym(module, "steamlink_native_button")) : nullptr;
+    if (!pauseInput || !activations || !nativeButton) {
         std::fprintf(stderr, "native-test.so test hooks not loaded\n");
         return 1;
     }
@@ -240,11 +243,52 @@ int main(int argc, char **argv) {
     at(fire, "commands after a failed one still start", [&] { return contains("p1", "ARG=1\n") && contains("p3", "ARG=3\n"); });
     act(0, [&] { release(one, {BTN_TL, BTN_TR}); clearOutputs(); });
 
+    // 11. Native controller events reaching Steam Link's UI. Each check writes
+    // the evdev state, then delivers a Valve-style controller event (0x300).
+    struct Receiver : QObject {
+        int seen = 0;
+        bool event(QEvent *e) override {
+            if (static_cast<int>(e->type()) != 0x300) return QObject::event(e);
+            ++seen;
+            return true;
+        }
+    } ui;
+    enum { nativeA = 0, nativeB = 1, nativeView = 2, nativeMenu = 7 };
+    // Returns whether the native event reached the UI.
+    auto native = [&](VirtualPad &pad, int key, bool down, int button) {
+        pad.key(key, down);
+        QEvent event(static_cast<QEvent::Type>(0x300));
+        nativeButton(&event, button, down);
+        const int before = ui.seen;
+        QApplication::sendEvent(&ui, &event);
+        return ui.seen != before;
+    };
+    at(200, "first combination button is reserved on home", [&] { return !native(one, BTN_SELECT, true, nativeView); });
+    at(0, "completing button is reserved", [&] { return !native(one, BTN_START, true, nativeMenu); });
+    at(0, "releases of reserved presses are reserved", [&] {
+        return !native(one, BTN_START, false, nativeMenu) && !native(one, BTN_SELECT, false, nativeView);
+    });
+    at(0, "a button outside every combination reaches the UI", [&] {
+        return native(one, BTN_SOUTH, true, nativeA) && native(one, BTN_SOUTH, false, nativeA);
+    });
+    at(0, "a press that cannot become a combination reaches the UI", [&] {
+        const bool view = !native(one, BTN_SELECT, true, nativeView);   // still a candidate
+        const bool b = native(one, BTN_EAST, true, nativeB);             // view+b is no combination
+        const bool released = native(one, BTN_EAST, false, nativeB) && !native(one, BTN_SELECT, false, nativeView);
+        return view && b && released;
+    });
+    act(0, [&] { play.hide(); });
+    at(100, "off the home screen every button reaches the UI", [&] {
+        return native(one, BTN_SELECT, true, nativeView) && native(one, BTN_SELECT, false, nativeView);
+    });
+    act(0, [&] { play.show(); root.activateWindow(); });
+    at(300, "nothing was started by native-event checks", [&] { return none(); });
+
     std::size_t index = 0;
     std::function<void()> next = [&] {
         if (index == steps.size()) {
             std::puts("PASS multiple shortcuts and commands, overlap, controllers, popup, reload, invalid config, "
-                      "queued input, disconnect and partial failure");
+                      "queued input, disconnect, partial failure and native-event reservation");
             app.quit();
             return;
         }

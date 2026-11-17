@@ -3,6 +3,7 @@
 // from a monotonic clock supplied by the caller.
 #include <linux/input-event-codes.h>
 
+#include <algorithm>
 #include <cstdint>
 #include <set>
 #include <vector>
@@ -95,4 +96,16 @@ struct Chord {
     // True from a full match until every button is released: native UI
     // input belongs to the shortcut during that time.
     bool active() const { return engaged && !pressed.empty(); }
+
+    // True while the held buttons include View, Menu or Guide and could still
+    // become a configured combination. Other buttons alone never qualify, so
+    // A, B, X, Y, bumpers and sticks keep their normal function.
+    bool candidate() const {
+        if (latched || pressed.empty()) return false;
+        if (!pressed.count(BTN_SELECT) && !pressed.count(BTN_START) && !pressed.count(BTN_MODE)) return false;
+        for (const ChordRule &rule : rules) {
+            if (std::includes(rule.buttons.begin(), rule.buttons.end(), pressed.begin(), pressed.end())) return true;
+        }
+        return false;
+    }
 };

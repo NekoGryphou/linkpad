@@ -191,11 +191,16 @@ class Shortcut final : public QObject {
         }
     }
 
-    bool anyActive() const {
+    // Native presses belong to a shortcut from a full match until full release,
+    // and on home while the held buttons could still become a combination:
+    // Steam Link quits when View is pressed alone on its home screen.
+    bool reserved() {
+        bool candidate = false;
         for (const auto &entry : pads) {
             if (entry.second->chord.active()) return true;
+            candidate |= entry.second->chord.candidate();
         }
-        return false;
+        return candidate && home();
     }
 
     void schedule(Pad *p) {
@@ -403,7 +408,7 @@ class Shortcut final : public QObject {
         bool pressed = false;
         for (const auto &record : records) pressed |= record.down;
         if (pressed) drainAll();  // evdev may not have been read yet for this press
-        const bool active = anyActive();
+        const bool active = reserved();
         bool swallow = false;
         for (const auto &record : records) {
             if (record.down) {
