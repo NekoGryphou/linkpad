@@ -1,17 +1,34 @@
 #!/bin/sh
-# Download/extract headers without installing Qt packages or their dependencies.
+# Download/extract build headers without installing packages or their dependencies.
 set -eu
 root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 command -v apt-get >/dev/null
 command -v dpkg-deb >/dev/null
 mkdir -p "$root/.cache"
-stage=$(mktemp -d "$root/.cache/qt-download.XXXXXX")
-trap 'rm -rf "$stage"' EXIT
-cd "$stage"
-apt-get download "qtbase5-dev:$(dpkg --print-architecture)"
-set -- qtbase5-dev_*.deb
-[ "$#" -eq 1 ] && [ -f "$1" ] || { echo 'Expected one Qt development package' >&2; exit 1; }
-dpkg-deb -x "$1" extracted
-rm -rf "$root/.cache/qt-headers"
-mv extracted "$root/.cache/qt-headers"
-echo 'Qt headers extracted into .cache/qt-headers; no packages installed.'
+
+# fetch PACKAGE DESTINATION: extract one downloaded .deb into .cache/DESTINATION.
+fetch() {
+    stage=$(mktemp -d "$root/.cache/download.XXXXXX")
+    (
+        cd "$stage"
+        apt-get download "$1"
+        set -- "$1" "$2" ./*.deb
+        [ "$#" -eq 3 ] && [ -f "$3" ] || { echo "Expected one $1 package" >&2; exit 1; }
+        dpkg-deb -x "$3" extracted
+    ) || { rm -rf "$stage"; exit 1; }
+    rm -rf "$root/.cache/$2"
+    mv "$stage/extracted" "$root/.cache/$2"
+    rm -rf "$stage"
+}
+
+case "${1:-all}" in
+all)
+    fetch "qtbase5-dev:$(dpkg --print-architecture)" qt-headers
+    fetch nlohmann-json3-dev json-headers
+    ;;
+json)
+    fetch nlohmann-json3-dev json-headers
+    ;;
+*) echo 'Usage: scripts/fetch-headers [all|json]' >&2; exit 1;;
+esac
+echo 'Headers extracted into .cache; no packages installed.'

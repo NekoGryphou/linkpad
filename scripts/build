@@ -3,7 +3,7 @@ set -eu
 root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 cd "$root"
 if [ "${1:-}" = --help ]; then
-    echo 'Build only; no root or installation. Configure STEAMLINK_DIR, QT_HEADERS, OUT_DIR, CC, CXX.'
+    echo 'Build only; no root or installation. Configure STEAMLINK_DIR, QT_HEADERS, JSON_HEADERS, OUT_DIR, CC, CXX.'
     exit 0
 fi
 : "${STEAMLINK_DIR:=${XDG_DATA_HOME:-$HOME/.local/share}/SteamLink}"
@@ -23,12 +23,12 @@ if [ ! -f "${QT_HEADERS:-}/QtCore/qglobal.h" ]; then
     echo 'Qt5 headers missing. Run make headers, or set QT_HEADERS to the directory containing QtCore.' >&2
     exit 1
 fi
+json=$("$root/scripts/json-include")
 export LD_LIBRARY_PATH="$STEAMLINK_DIR/lib:$q${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 mkdir -p "$OUT_DIR"
 "$CC" -O2 -Wall -Wextra -fPIC -shared src/bootstrap.c -ldl -o "$OUT_DIR/bootstrap.so"
-"$CXX" -O2 -Wall -Wextra -std=c++17 tests/test-chord.cpp -o "$OUT_DIR/test-chord" -Isrc
 # These headers must use the bundled Qt public ABI; undefined imports fail the link.
-set -- -O2 -Wall -Wextra -fPIC -std=c++17 -Isrc -I"$QT_HEADERS" -I"$QT_HEADERS/QtCore" -I"$QT_HEADERS/QtGui" -I"$QT_HEADERS/QtWidgets" -I"$QT_HEADERS/QtNetwork" -L"$q" -Wl,-rpath-link,"$q"
+set -- -O2 -Wall -Wextra -fPIC -std=c++17 -Isrc -isystem "$json" -I"$QT_HEADERS" -I"$QT_HEADERS/QtCore" -I"$QT_HEADERS/QtGui" -I"$QT_HEADERS/QtWidgets" -I"$QT_HEADERS/QtNetwork" -L"$q" -Wl,-rpath-link,"$q"
 "$CXX" "$@" -shared src/native.cpp -Wl,--no-undefined -l:libQt5Widgets.so.5 -l:libQt5Gui.so.5 -l:libQt5Network.so.5 -l:libQt5Core.so.5 -o "$OUT_DIR/native.so"
 for test in home lifecycle action input; do
     "$CXX" "$@" "tests/test-$test.cpp" -l:libQt5Widgets.so.5 -l:libQt5Gui.so.5 -l:libQt5Core.so.5 -o "$OUT_DIR/test-$test"

@@ -1,0 +1,12 @@
+#!/bin/sh
+# Print the include directory containing nlohmann/json.hpp.
+set -eu
+root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+for path in ${JSON_HEADERS:-} "$root/.cache/json-headers/usr/include" /usr/include; do
+    if [ -f "$path/nlohmann/json.hpp" ]; then
+        echo "$path"
+        exit 0
+    fi
+done
+echo 'nlohmann/json headers missing. Run make headers (or make headers-json), or set JSON_HEADERS.' >&2
+exit 1

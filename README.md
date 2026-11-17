@@ -7,12 +7,12 @@ Run a command by holding Xbox **View + Menu for one second** on Steam Link's hom
 Build on the Steam Link machine with a C/C++17 compiler and Make. Steam Link must have been launched once to download its bundled libraries.
 
 ```sh
-make headers     # Debian/Raspberry Pi OS: download Qt headers without installing Qt
+make headers     # Debian/Raspberry Pi OS: download Qt and nlohmann/json headers without installing them
 make test
 sudo make install
 ```
 
-Set `STEAMLINK_DIR` if the bundle is outside `~/.local/share/SteamLink`, or `QT_HEADERS` to use existing headers. Tested on ARM64 Raspberry Pi OS with Valve Qt 5.14.1 and the English home screen.
+Set `STEAMLINK_DIR` if the bundle is outside `~/.local/share/SteamLink`, or `QT_HEADERS` / `JSON_HEADERS` to use existing headers. Tested on ARM64 Raspberry Pi OS with Valve Qt 5.14.1 and the English home screen.
 
 ## Configure
 
@@ -41,7 +41,7 @@ It wraps the official Steam Link launcher. Existing startup services can invoke 
 ## Test and uninstall
 
 ```sh
-make test-unit    # Chord and shell packaging tests; also works on WSL
+make test-unit    # Tests without Qt; also work on a PC after make headers-json
 make test         # Requires Steam Link's bundled Qt libraries
 make test-input   # Optional virtual-controller test; requires /dev/uinput access
 sudo make uninstall
