@@ -7,7 +7,7 @@ root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 json=$("$root/scripts/json-include")
 mkdir -p "$OUT_DIR"
 "$CXX" -O2 -std=c++17 "$root/tests/command-target.cpp" -o "$OUT_DIR/command-target"
-for test in config chord; do
+for test in config chord spawn; do
     "$CXX" -O2 -Wall -Wextra -Werror -std=c++17 -I"$root/src" -isystem "$json" \
         "$root/tests/test-$test.cpp" -o "$OUT_DIR/test-$test"
     "$OUT_DIR/test-$test"

@@ -30,7 +30,7 @@ mkdir -p "$OUT_DIR"
 # These headers must use the bundled Qt public ABI; undefined imports fail the link.
 set -- -O2 -Wall -Wextra -fPIC -std=c++17 -Isrc -isystem "$json" -I"$QT_HEADERS" -I"$QT_HEADERS/QtCore" -I"$QT_HEADERS/QtGui" -I"$QT_HEADERS/QtWidgets" -I"$QT_HEADERS/QtNetwork" -L"$q" -Wl,-rpath-link,"$q"
 "$CXX" "$@" -shared src/native.cpp -Wl,--no-undefined -l:libQt5Widgets.so.5 -l:libQt5Gui.so.5 -l:libQt5Network.so.5 -l:libQt5Core.so.5 -o "$OUT_DIR/native.so"
-for test in home lifecycle action input; do
+for test in home lifecycle input; do
     "$CXX" "$@" "tests/test-$test.cpp" -l:libQt5Widgets.so.5 -l:libQt5Gui.so.5 -l:libQt5Core.so.5 -o "$OUT_DIR/test-$test"
 done
 "$CXX" -O2 -std=c++17 tests/command-target.cpp -o "$OUT_DIR/command-target"
