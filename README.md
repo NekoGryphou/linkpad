@@ -1,6 +1,6 @@
 # Steam Link Tool
 
-Run a command by holding Xbox **View + Menu for one second** on Steam Link's home screen. Uses native UI state and controller events; no screenshot detection or Python.
+Run commands by holding Xbox controller button combinations on Steam Link's home screen. Uses native UI state and controller events; no screenshot detection, polling or Python.
 
 ## Build and install
 
@@ -16,17 +16,36 @@ Set `STEAMLINK_DIR` if the bundle is outside `~/.local/share/SteamLink`, or `QT_
 
 ## Configure
 
-Create `~/.config/steamlink-tool/action.json`:
+Create `~/.config/steamlink-tool/shortcuts.json`:
 
 ```json
 {
-  "command": ["/absolute/path/to/your-tool", "--argument", "value with spaces"]
+  "shortcuts": [
+    {
+      "buttons": ["view", "menu"],
+      "hold_ms": 1000,
+      "commands": [
+        ["/usr/local/bin/first-tool", "--argument", "value with spaces"],
+        ["/usr/local/bin/second-tool"]
+      ]
+    },
+    {
+      "buttons": ["view", "y"],
+      "working_directory": "/home/steamlink/scripts",
+      "commands": [["./backup.sh"]]
+    }
+  ]
 }
 ```
 
-Changes apply on the next shortcut—no restart or rebuild. Each array entry is one argument; no shell interprets it. Optional `working_directory` defaults to your home. Commands run asynchronously as your user with the launcher's original library environment. An empty command runs nothing.
+- `buttons`: `a`, `b`, `x`, `y`, `view`, `menu`, `guide`, `lb`, `rb`, `ls`, `rs`. Exactly these buttons must be held on one controller; each combination may appear once.
+- `hold_ms`: 100–60000, default 1000.
+- `commands`: started in order, without waiting for each other. A command that cannot start is logged and the others still start. Each array entry is one argument; no shell interprets it.
+- `working_directory`: absolute path, default your home.
 
-Set `STEAMLINK_TOOL_CONFIG` to use another configuration file.
+Changes apply on the next button press; no restart. An invalid file disables all shortcuts and logs the reason. Commands run as your user with the launcher's original environment. Set `STEAMLINK_TOOL_CONFIG` to use another file.
+
+Once a combination is fully held, Steam Link ignores controller buttons until all are released. Buttons pressed before the combination is complete still reach Steam Link, so start combinations with View, Menu or Guide.
 
 ## Run
 
@@ -36,17 +55,17 @@ Close any other client instance, then run:
 steamlink-tool
 ```
 
-It wraps the official Steam Link launcher. Existing startup services can invoke this command too. Installation does not change services, drivers, LEDs or networking.
+It wraps the official Steam Link launcher. Existing startup services can invoke this command too. Installation does not change services, drivers, LEDs or networking. Messages are prefixed `STEAMLINK_TOOL` in the client's log.
 
 ## Test and uninstall
 
 ```sh
-make test-unit    # Tests without Qt; also work on a PC after make headers-json
+make test-unit    # Tests without Qt; also run on a PC after make headers-json
 make test         # Requires Steam Link's bundled Qt libraries
-make test-input   # Optional virtual-controller test; requires /dev/uinput access
+make test-input   # Virtual-controller test; requires /dev/uinput access
 sudo make uninstall
 ```
 
 Stop other client instances before `test-input`. User configuration is preserved on uninstall. `PREFIX`, `DESTDIR` and `OUT_DIR` are supported; `make clean` removes build output.
 
-The repo contains only tool source, build/install scripts and tests. Physical-controller and extended gameplay testing remain outstanding. License undecided.
+The repo contains only tool source, build/install scripts and tests. License undecided.

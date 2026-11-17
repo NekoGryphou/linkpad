@@ -1,3 +1,12 @@
 {
-  "command": ["/path/to/your-tool", "--argument"]
+  "shortcuts": [
+    {
+      "buttons": ["view", "menu"],
+      "hold_ms": 1000,
+      "commands": [
+        ["/path/to/first-tool", "--argument"],
+        ["/path/to/second-tool"]
+      ]
+    }
+  ]
 }
